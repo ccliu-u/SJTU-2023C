@@ -85,7 +85,7 @@ class WINE:
 
     def count_num(self, type=WINE, count="num_alcohol"):
         counter = 0
-        for attr in type:
+        
 
 
 
@@ -200,7 +200,7 @@ class FOODS:
         counter = 0
         for attr in type:
             food = getattr(self, attr)
-            counter += food
+            #counter += food
         counter = counter * 500 / FAMILY / MONTH
         setattr(self, count, counter)
 
@@ -208,7 +208,7 @@ class FOODS:
         counter = 0
         for attr in type:
             food = getattr(self, attr)
-            counter += food
+            #counter += food
         counter = counter * 50 / FAMILY / MONTH
         setattr(self, count, counter)
 
