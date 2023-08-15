@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
+import matplotlib as mpl
+import seaborn as sns
 
 ###################################################################
 #                          Food Category                          #
@@ -175,7 +178,8 @@ class FOODS:
         self.num_day_foods = 0
         self.num_week_foods = 0
         self.count_num([(POTATOES, "num_potatoes"), (LPFEM, "num_lpfem"),
-                        (FRUITS_VEGETABLES, "num_fruits_vegetables"), (BEANS, "num_beans")])
+                        (FRUITS_VEGETABLES, "num_fruits_vegetables"),
+                         (BEANS, "num_beans"), (AQUATIC_PRODUCTS,"frequency_aquatic_products")])
         self.count_quantity([(LPFEM, "quantity_lpfem"), (BEANS, "quantity_beans"),
                              (FRESH_VEGETABLES, "quantity_fresh_vegetables"),
                              (FRESH_FRUITS, "quantity_fresh_fruits"),
@@ -195,6 +199,7 @@ class FOODS:
         self.cereal = True if (self.quantity_cereal >= 3) else False
         self.lpfem = True if (self.quantity_lpfem >= 2.4) and (self.quantity_lpfem <= 4) else False
         self.egg = True if (self.quantity_egg >= 1) and (self.quantity_egg <=2) else False
+        self.aquatic_products = True if (self.frequency_aquatic_products * 7 >= 1) and (self.frequency_aquatic_products * 7 <= 3) else False
         if self.D33 is None:
             self.light_salt = None
         else:
@@ -371,8 +376,21 @@ class Persons:
 
     def add_person(self, person: Person):
         self.person_dict[person.basic_info.id] = person
-
-    def statistics(self, name="balanced_diet"):
+    
+    def statistics(self):
+        attrs = self.person_dict[10001].evaluate_info.evaluate_dict.keys()
+        self.stats_ratio = list()
+        self.stats_info = list()
+        for attr in attrs:
+            self._statistics(attr)
+            self.stats_ratio.append(getattr(self, "meet_"+attr).get_ratio())
+            self.stats_info.append(getattr(self, "meet_"+attr).get_info())
+        self.stats_ratio = np.array(self.stats_ratio)
+        self.stats_info = np.array(self.stats_info)
+        self.stats_ratio = self.stats_ratio[np.argsort(-self.stats_ratio[:, 2].astype(float))]
+        self.stats_info = self.stats_info[np.argsort(-self.stats_info[:, 3].astype(int))]
+            
+    def _statistics(self, name="balanced_diet"):
         total = len(self.person_dict)
         effective = 0
         meet = 0
@@ -385,6 +403,25 @@ class Persons:
         setattr(self, "meet_"+name, STATISTICS(name, total, effective, meet=meet))         
         self.message += (", meet_" + name)
     
+    def draw(self):
+        plt.rcParams.update({'font.size': 12})
+        plt.figure(figsize=(14, 10))
+        data = pd.DataFrame(self.stats_ratio[:, 1:].astype(float), index=self.stats_ratio[:, 0], columns=['False', 'True'])
+        data['name'] = data.index
+        bottom_plot = sns.barplot(x='name', y='True', data=data, color="#0000A3")
+        sns.barplot(x='name', y='False', data=data, color="#FF0000", bottom=data['True'])
+        topbar = plt.Rectangle((0, 0), 1, 1, fc="#FF0000", edgecolor='none')
+        bottombar = plt.Rectangle((0, 0), 1, 1, fc='#0000A3', edgecolor='none')
+        l = plt.legend([bottombar, topbar], ['standard', 'nonstandard'], loc=1, ncol = 2, prop={'size':8})
+        l.draw_frame(False)
+        sns.despine(left=True)
+        bottom_plot.set_ylabel("Ratio")
+        bottom_plot.set_xlabel("")
+        bottom_plot.set_xticklabels(data.name, rotation=20, fontsize='small')
+        plt.ylim(0, 1.1)
+        plt.title("Evaluating Indicator")
+        plt.savefig("pics/stats.png")
+
     def cal_average(self, attrs:list, name):
         total_val = 0
         total = len(self.person_dict)
@@ -445,9 +482,12 @@ class STATISTICS:
         self.meet = meet
         self.avarage = avarage
 
-    def draw(self):
-        pass
-
+    def get_info(self):
+        return [self.name, self.total, self.effective, self.meet]
+    
+    def get_ratio(self):
+        return [self.name, 1-self.meet/self.effective, self.meet/self.effective]
+    
     def __repr__(self):
         message = "name, total, effective"
         if self.meet:
@@ -487,4 +527,5 @@ def get_data(filename="data/processed_data.npy"):
     persons = Persons()
     for person_data in data:
         persons.add_person(Person(person_data))
+    persons.statistics()
     return persons
